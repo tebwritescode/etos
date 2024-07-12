@@ -7,7 +7,8 @@ Introducing Email-to-obsidian-sync, or ETOS.
 
 The script checks an email for emails with a specific subject, downloads pdf attachments from that email to a temporary folder, converts that PDF to a TXT file, pipes that text file through Fabric to ollama, and saves the reply from ollama/fabric to a locally mounted obsidian directory. I am not an expert programmer but it seems to work. See instructions below:
 
-These instructions do not cover installing a custom pattern for fabric, there are tutorials out there for how to do this. My pattern is:
+These instructions do not cover installing a custom pattern for fabric, there are tutorials out there for how to do this. My pattern is in the write_code folder. The fabric documentation is great so I recommend studying that.
+https://github.com/danielmiessler/fabric/blob/main/README.md#create-your-own-fabric-mill
 
 Basic concept:
 1. Use attachment downloader to get pdf from email
@@ -98,7 +99,7 @@ pdftotext '<EMAIL_OUTPUT_LOCATION>.pdf'
 ```bash
 cat '<EMAIL_OUTPUT_LOCATION>.pdf' | fabric --model llama3:latest --pattern write_code --remoteOllamaServer <REMOTE_OLLAMA_SERVER> | save NewTo-Do
 ```
-19. Setup the smb mount for obsidian folder
+19. Setup the smb mount for obsidian folder, there are tons of tutorials out there for how to mount a SMB share, at the end of the day the files from this directory just need to go to your obsidian library, you can do that with Syncthing, an SMB share, or your choice of getting it there.
 20. Create a bash script to perform tasks
 ```bash
 mkdir /opt/etos
