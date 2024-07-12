@@ -1,6 +1,9 @@
 # etos
 The script checks an email for emails with a specific subject, downloads pdf attachments from that email to a temporary folder, converts that PDF to a TXT file, pipes that text file through Fabric to ollama, and saves the reply from ollama/fabric to a locally mounted obsidian directory.
 
+# Usage Example
+I use this to email pdf files of step by step instructions to be added to my Obsidian vault. The fabric pattern is designed to extract ONLY the step by step instructions from the PDF and save those to Obsidian. I would love to see the fabric pattern improved.
+
 So for anyone looking for something like this, I wrote a bash script that uses Ollama, Fabric, attachment-downloader, and pdftotext. 
 
 Introducing Email-to-obsidian-sync, or ETOS. 
