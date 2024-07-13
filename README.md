@@ -108,7 +108,9 @@ cat '<DOWNLOADED_ATTACHMENT_CONVERTED>.pdf' | fabric --model llama3:latest --pat
 19. Setup the smb mount for obsidian folder, there are tons of tutorials out there for how to mount a SMB share, at the end of the day the files from this directory just need to go to your obsidian library, you can do that with Syncthing, an SMB share, or your choice of getting it there.
 20. Pull the etos.sh script
 ```bash
-git clone github.com/tebwritescode/etos/etos.sh
+mkdir /opt/etos
+git clone https://github.com/tebwritescode/etos.git
+cp ./etos/etos.sh /opt/etos/etos.sh
 ```
 
 22. Make script executable
