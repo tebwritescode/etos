@@ -28,6 +28,8 @@ In the below steps you must replace:
 <EMAIL_SUBJECT_FILTER> - The filter that will be at the beginning of the subject of every email we want to download PDF files from, I used etos
 <PDF_DOWNLOADED> - This is only used during setup to verify that attachment-downloader and pdftotext are installed and working before running the script
 <REMOTE_OLLAMA_SERVER> - This is only needed if you are using a remote ollama server, if ollama is running on localhost remove the tag along with the configuration option in the script. I.E. remove everything after write_code and before | " --remoteOllamaServer <REMOTE_OLLAMA_SERVER>"
+<DOWNLOADED_ATTACHMENT> The PDF file that attachment-downloader pulled from your email server in step 7
+<DOWNLOADED_ATTACHMENT_CONVERTED> The TXT file that was created in step 8
 ```
 
 Make sure to add your custom pattern, I have added my pattern as write_code, if you name your pattern something else make sure to replace write_code in the below script
@@ -56,7 +58,8 @@ cp /root/.local/share/pipx/venvs/attachment-downloader/bin/attachment-downloader
 6. Setup email account where files will be sent
 7. Test attachment-downloader works
 ```bash
-attachment-downloader --host <EMAIL_SMTP_HOST> --username <EMAIL_ADDRESS> --password <EMAIL_PASSWORD> --imap-folder <EMAIL_FOLDER> --output <EMAIL_OUTPUT_LOCATION> --delete --subject-regex=<EMAIL_SUBJECT_FILTER>
+attachment-downloader --host <EMAIL_SMTP_HOST> --username <EMAIL_ADDRESS> --password <EMAIL_PASSWORD> --imap-folder <EMAIL_FOLDER> --output <EMAIL_OUTPUT_LOCATION> --delete --subject-regex=<EMAIL_SUBJECT_FILTER> --filename-template="{{date.strftime('%Y-%m-%d-%H-%M-%S-%f')}}_{{ attachment_name }}"
+
 ```
 8. Test pdftotext and open the generated text file(placed next to the PDF by default)
 ```bash
@@ -92,76 +95,23 @@ fabric --help
 ```
 16. Download file from email server
 ```bash
-attachment-downloader --host <SMTP_HOST> --username <EMAIL_ADDRESS> --password <EMAIL_PASSWORD> --imap-folder <EMAIL_FOLDER> --output <EMAIL_OUTPUT_LOCATION> --delete --subject-regex=<EMAIL_SUBJECT_FILTER> --filename-template="{{date.strftime('%Y-%m-%d')}} - {{ subject }}.pdf"
+attachment-downloader --host <EMAIL_SMTP_HOST> --username <EMAIL_ADDRESS> --password <EMAIL_PASSWORD> --imap-folder <EMAIL_FOLDER> --output <EMAIL_OUTPUT_LOCATION> --delete --subject-regex=<EMAIL_SUBJECT_FILTER> --filename-template="{{date.strftime('%Y-%m-%d-%H-%M-%S-%f')}}_{{ attachment_name }}"
 ```
 17. Convert pdf to text
 ```bash
-pdftotext '<EMAIL_OUTPUT_LOCATION>.pdf'
+pdftotext '<DOWNLOADED_ATTACHMENT>.pdf'
 ```
 18. Test if we can use fabric to call ollama
 ```bash
-cat '<EMAIL_OUTPUT_LOCATION>.pdf' | fabric --model llama3:latest --pattern write_code --remoteOllamaServer <REMOTE_OLLAMA_SERVER> | save NewTo-Do
+cat '<DOWNLOADED_ATTACHMENT_CONVERTED>.pdf' | fabric --model llama3:latest --pattern write_code --remoteOllamaServer <REMOTE_OLLAMA_SERVER> | save NewTo-Do
 ```
 19. Setup the smb mount for obsidian folder, there are tons of tutorials out there for how to mount a SMB share, at the end of the day the files from this directory just need to go to your obsidian library, you can do that with Syncthing, an SMB share, or your choice of getting it there.
-20. Create a bash script to perform tasks
+20. Pull the etos.sh script
 ```bash
-mkdir /opt/etos
-mkdir /opt/etos/tmp
-touch /var/log/etos.log
-nano /opt/etos/etos.sh
+git pull github.com/tebwritescode/etos/etos.sh
 ```
 
-```bash
-#!/bin/bash
-#Create a function for logging
-log() {
-	echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a /var/log/etos.log
-}
-log "#######################################################################################" || echo "#######################################################################################"
-log "Starting ETOS Importer" || echo "Starting ETOS Importer"
-log "Step 1: Check for and download attachments from email" || echo "Step 1: Check for and download attachments from email"
-attachment-downloader --host <EMAIL_SMTP_HOST> --username <EMAIL_ADDRESS> --password <EMAIL_PASSWORD> --imap-folder <EMAIL_FOLDER> --output <EMAIL_OUTPUT_LOCATION> --delete --subject-regex=<EMAIL_SUBJECT_FILTER>
-log "Step 2: Declare file array" || echo "Step 2: Declare variables"
-declare -a filenames >> /var/log/etos.log
-index=0
-log "Step 3: Change working directory." || echo "Step 3: Change working directory."
-cd <EMAIL_OUTPUT_LOCATION>
-log "Step 4: Find all files in working directory" || echo "Step 4: Find all files in working directory"
-for file in *; do
-        if [[ -f "$file" && "$file" == *.pdf ]]; then
-                filenames[index]=$(realpath "$file") >> /var/log/etos.log
-                index=$((index + 1)) >> /var/log/etos.log
-        fi
-done
-log "Step 5: Exit if no files found" || echo "Step 5: Exit if no files found"
-if [ ${#filenames[@]} -eq 0 ]; then
-        echo "Exit: No eligible imports found" || log "Exit: No eligible imports found"
-        exit 1
-fi
-log "Step 6: Loop through all files found" || echo "Step 6: Loop through all files found"
-for ((i=0; i < ${#filenames[@]}; i++)); do
-	log "Processing: ${filenames[$i]}" || echo "Processing: ${filenames[$i]}"
-        log "Converting ${filenames[$i]} to txt" || echo "Converting ${filenames[$i]} to txt"
-	pdftotext "${filenames[$i]}" >> /var/log/etos.log
-	textfile="${filenames[${i}]%.pdf}.txt"
-        log "Txt file is: ${textfile}" || echo "Txt file is: ${textfile}"
-	log "Change working directory" || echo "Change working directory"
-	cd <LOCATION_OF_OBSIDIAN_VAULT>
-        log "Send ${textfile} to ollama for summarizing" || echo "Send ${textfile} to ollama for summarizing"
-	log "Ollama output>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" || echo "Ollama output>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-	cat "${textfile}" | fabric --model llama3:latest --temp 0 --pattern write_code --remoteOllamaServer <REMOTE_OLLAMA_SERVER> | save New >> /var/log/etos.log
-	log "Removing temporary files" || echo "Removing temporary files"
-	rm "${filenames[$i]}" >> /var/log/etos.log
-        rm "${textfile}" >> /var/log/etos.log
-done
-log "Cleaning up" || echo "Cleaning up"
-rm <EMAIL_OUTPUT_LOCATION>/*.txt >> /var/log/etos.log
-rm <EMAIL_OUTPUT_LOCATION>/*.pdf >> /var/log/etos.log
-#Stop logging
-log "#######################################################################################" | echo "#######################################################################################"
-
-```
-21. Make script executable
+22. Make script executable
 ```bash
 chmod +x /opt/etos/etos.sh
 ```
