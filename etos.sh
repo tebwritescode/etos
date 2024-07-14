@@ -51,7 +51,7 @@ for ((i=0; i < ${#filenames[@]}; i++)); do
     log "Txt file is: $textfile" || echo "Txt file is: $textfile"
     log "Send /opt/etos/tmp/$textfile to ollama for summarizing" || echo "Send /opt/etos/tmp/$textfile to ollama for summarizing"
     log "Ollama output>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" || echo "Ollama output>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-    cat "/opt/etos/tmp/$textfile" | fabric --model llama3:latest --temp 0 --pattern write_code --remoteOllamaServer <REMOTE_OLLAMA_SERVER>:11434 | save New >> /var/log/etos.log
+    cat "/opt/etos/tmp/$textfile" | /root/.local/bin/fabric --model llama3:latest --temp 0 --pattern write_code --remoteOllamaServer <REMOTE_OLLAMA_SERVER>:11434 | /root/.local/bin/save New >> /var/log/etos.log
     log "Removing temporary files" || echo "Removing temporary files"
     rm "/opt/etos/tmp/$textfile" >> /var/log/etos.log
     rm "$fullpath" >> /var/log/etos.log
